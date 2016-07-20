@@ -49,8 +49,10 @@ class DocTypeOptions(object):
         doc_type = getattr(meta, 'doc_type',
                 re.sub(r'(.)([A-Z])', r'\1_\2', name).lower())
 
+        analyzers = getattr(meta, 'analyzers', None)
+
         # create the mapping instance
-        self.mapping = getattr(meta, 'mapping', Mapping(doc_type))
+        self.mapping = getattr(meta, 'mapping', Mapping(doc_type, analyzers))
 
         # register all declared fields into the mapping
         for name, value in list(iteritems(attrs)):

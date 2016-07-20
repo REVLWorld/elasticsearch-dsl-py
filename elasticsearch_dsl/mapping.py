@@ -25,9 +25,10 @@ class Properties(InnerObject, DslBase):
 
 
 class Mapping(object):
-    def __init__(self, name):
+    def __init__(self, name, analyzers=None):
         self.properties = Properties(name)
         self._meta = {}
+        self.custom_analyzers = analyzers or []
 
     def __repr__(self):
         return 'Mapping(%r)' % self.doc_type
@@ -37,6 +38,17 @@ class Mapping(object):
         m = cls(doc_type)
         m.update_from_es(index, using)
         return m
+
+    def _set_analyzer(self, analyzer, analysis):
+        d = analyzer.get_analysis_definition()
+        # empty custom analyzer, probably already defined out of our control
+        if not d:
+            return
+
+        # merge the definition
+        # TODO: conflict detection/resolution
+        for key in d:
+            analysis.setdefault(key, {}).update(d[key])
 
     def _collect_analysis(self):
         analysis = {}
@@ -49,15 +61,10 @@ class Mapping(object):
                 if not hasattr(f, analyzer_name):
                     continue
                 analyzer = getattr(f, analyzer_name)
-                d = analyzer.get_analysis_definition()
-                # empty custom analyzer, probably already defined out of our control
-                if not d:
-                    continue
+                self._set_analyzer(analyzer, analysis)
 
-                # merge the definition
-                # TODO: conflict detection/resolution
-                for key in d:
-                    analysis.setdefault(key, {}).update(d[key])
+        for analyzer in self.custom_analyzers:
+            self._set_analyzer(analyzer, analysis)
 
         return analysis
 
